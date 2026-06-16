@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pani Ki Gi Bari 🚰</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: white;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        /* Top Banner */
+        .question-container {
+            text-align: center;
+            margin: 15px 0 20px 0;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .question-container h1 {
+            font-size: 1.8rem;
+            border-bottom: 2px dashed rgba(0, 255, 204, 0.6);
+            padding-bottom: 5px;
+            display: inline-block;
+            outline: none;
+            color: #00ffcc;
+            text-shadow: 0 0 10px rgba(0,255,204,0.2);
+        }
+
+        .instruction {
+            font-size: 0.75rem;
+            color: #b0bec5;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* Wheel Area */
+        .wheel-wrapper {
+            position: relative;
+            width: 90vw;
+            height: 90vw;
+            max-width: 340px;
+            max-height: 340px;
+            margin-bottom: 20px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-top: 26px solid #ff3366;
+            z-index: 10;
+            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.4));
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            /* Perfect cubic-bezier curve for authentic casino wheel slow-down */
+            transition: transform 5s cubic-bezier(0.25, 1, 0.2, 1);
+        }
+
+        .spin-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 65px;
+            height: 65px;
+            background: #ffffff;
+            color: #203a43;
+            border-radius: 50%;
+            border: 4px solid #ff3366;
+            font-weight: 900;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4), inset 0 0 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            z-index: 5;
+            transition: transform 0.1s;
+        }
+
+        .spin-btn:active {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+
+        .spin-btn.disabled {
+            background: #b0bec5;
+            border-color: #78909c;
+            color: #546e7a;
+            cursor: not-allowed;
+        }
+
+        /* Names Settings Panel */
+        .names-panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 6px;
+        }
+
+        .panel-header h3 {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        /* Secret Feature Trigger Areas */
+        .secret-trigger {
+            width: 35px;
+            height: 25px;
+            cursor: default;
+            background: transparent;
+        }
+
+        #riggedSelect {
+            background: rgba(0, 0, 0, 0.8);
+            color: #ff3366;
+            border: 1px solid #ff3366;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            padding: 2px;
+            display: none;
+            outline: none;
+        }
+
+        .name-list {
+            max-height: 130px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            padding-right: 2px;
+        }
+
+        /* Custom Scrollbar */
+        .name-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .name-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+
+        .name-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.06);
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .name-item input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.95rem;
+            width: 80%;
+            outline: none;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #ff5252;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 4px;
+        }
+
+        .add-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-box input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .add-box button {
+            padding: 0 16px;
+            background: #00ffcc;
+            border: none;
+            border-radius: 8px;
+            color: #0f2027;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        /* Responsive Mobile Popups */
+        .winner-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: #ffffff;
+            color: #222;
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            text-align: center;
+            z-index: 100;
+            width: 85vw;
+            max-width: 320px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+        }
+
+        .winner-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .winner-popup h2 {
+            font-size: 1.2rem;
+            color: #616161;
+            letter-spacing: 1px;
+        }
+
+        .winner-popup h1 {
+            font-size: 2.4rem;
+            color: #ff3366;
+            margin: 12px 0 20px 0;
+            word-wrap: break-word;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .winner-popup button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(42,82,152,0.3);
+            width: 100%;
+        }
+
+        .overlay {
+            position: fixed;
+            top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            z-index: 99;
+        }
+
+        .overlay.show { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="question-container">
+        <h1 contenteditable="true" title="Click to change question">Pani Gi Bari 🚰</h1>
+        
+    </div>
+
+    <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="400" height="400"></canvas>
+        <div class="spin-btn" id="spinBtn">SPIN</div>
+    </div>
+
+    <div class="names-panel">
+        <div class="panel-header">
+            <h3>Doston Ke Naam:</h3>
+            <div class="secret-trigger" onclick="toggleSecretRiggedMenu()"></div>
+            <select id="riggedSelect" onchange="applyRiggedTarget()">
+                <option value="random">⭐ Pure Random</option>
+            </select>
+        </div>
+        <div class="name-list" id="nameList"></div>
+        <div class="add-box">
+            <input type="text" id="newNameInput" placeholder="Naya dost add kare...">
+            <button id="addNameBtn">Add</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="winner-popup" id="winnerPopup">
+        <h2>🚨 TARGET LOCKED 🚨</h2>
+        <h1 id="winnerName"></h1>
+        <button onclick="closePopup()">Bhag Ke Jao! 🏃‍♂️</button>
+    </div>
+
+    <script>
+        // Web Audio API Synth Effects to bypass browser download errors
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTickSound() {
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } catch(e){}
+        }
+
+        function playWinSound() {
+            try {
+                // Energetic double-tone finish effect
+                let osc1 = audioCtx.createOscillator();
+                let osc2 = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc1.type = 'triangle'; osc2.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(392, audioCtx.currentTime); // G4
+                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.1); // C5
+                osc2.frequency.setValueAtTime(261.63, audioCtx.currentTime); // C4
+                osc2.frequency.setValueAtTime(329.63, audioCtx.currentTime + 0.1); // E4
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc1.connect(gain); osc2.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc1.start(); osc2.start();
+                osc1.stop(audioCtx.currentTime + 0.5); osc2.stop(audioCtx.currentTime + 0.5);
+            } catch(e){}
+        }
+    </script>
+
+    <script>
+        let names = ["Vikas", "Ajay", "Dhanuj", "Jakhar"];
+        const colors = ["#ff4757", "#2ed573", "#1e90ff", "#ffa502", "#9b59b6", "#1abc9c", "#fd79a8"];
+
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const spinBtn = document.getElementById("spinBtn");
+        const nameListDiv = document.getElementById("nameList");
+        const newNameInput = document.getElementById("newNameInput");
+        const addNameBtn = document.getElementById("addNameBtn");
+        const winnerPopup = document.getElementById("winnerPopup");
+        const winnerNameText = document.getElementById("winnerName");
+        const overlay = document.getElementById("overlay");
+        const riggedSelect = document.getElementById("riggedSelect");
+
+        let isSpinning = false;
+        let secretClicks = 0;
+        let riggedTargetIndex = "random";
+
+        function drawWheel() {
+            const numSegments = names.length;
+            const anglePerSegment = (2 * Math.PI) / numSegments;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(numSegments === 0) {
+                ctx.fillStyle = "white";
+                ctx.font = "18px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Ek naam toh daalo!", 200, 200);
+                return;
+            }
+
+            names.forEach((name, i) => {
+                const startAngle = i * anglePerSegment;
+                const endAngle = startAngle + anglePerSegment;
+
+                ctx.beginPath();
+                ctx.moveTo(200, 200);
+                ctx.arc(200, 200, 195, startAngle, endAngle);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "rgba(255,255,255,0.2)";
+                ctx.stroke();
+
+                // Typography Placement inside wedges
+                ctx.save();
+                ctx.translate(200, 200);
+                ctx.rotate(startAngle + anglePerSegment / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 16px sans-serif";
+                // Shorten name if too long for layout scaling
+                let displayName = name.length > 10 ? name.substring(0,8)+".." : name;
+                ctx.fillText(displayName, 175, 6);
+                ctx.restore();
+            });
+        }
+
+        function renderNameList() {
+            nameListDiv.innerHTML = "";
+            
+            // Build current list options for secret rigged setup
+            let savedRiggedValue = riggedSelect.value;
+            riggedSelect.innerHTML = '<option value="random">⭐ Pure Random</option>';
+
+            names.forEach((name, index) => {
+                const div = document.createElement("div");
+                div.className = "name-item";
+                div.innerHTML = `
+                    <input type="text" value="${name}" data-index="${index}" oninput="updateName(this)">
+                    <button class="remove-btn" onclick="removeName(${index})">×</button>
+                `;
+                nameListDiv.appendChild(div);
+
+                // Populate secret menu items
+                let opt = document.createElement("option");
+                opt.value = index;
+                opt.innerText = `Lock: ${name}`;
+                riggedSelect.appendChild(opt);
+            });
+
+            if(savedRiggedValue !== "random" && parseInt(savedRiggedValue) < names.length) {
+                riggedSelect.value = savedRiggedValue;
+                riggedTargetIndex = savedRiggedValue;
+            } else {
+                riggedSelect.value = "random";
+                riggedTargetIndex = "random";
+            }
+
+            drawWheel();
+        }
+
+        function updateName(inputEl) {
+            const index = inputEl.getAttribute("data-index");
+            names[index] = inputEl.value;
+            renderNameList();
+        }
+
+        function removeName(index) {
+            names.splice(index, 1);
+            renderNameList();
+        }
+
+        addNameBtn.addEventListener("click", () => {
+            const name = newNameInput.value.trim();
+            if(name) {
+                names.push(name);
+                newNameInput.value = "";
+                renderNameList();
+            }
+        });
+
+        newNameInput.addEventListener("keypress", (e) => {
+             if(e.key === 'Enter') addNameBtn.click();
+        });
+
+        // Invisible Master Controller Toggle
+        function toggleSecretRiggedMenu() {
+            secretClicks++;
+            if(secretClicks >= 3) { // 3 clicks reveal feature
+                riggedSelect.style.display = (riggedSelect.style.display === "block") ? "none" : "block";
+                secretClicks = 0; 
+            }
+        }
+
+        function applyRiggedTarget() {
+            riggedTargetIndex = riggedSelect.value;
+        }
+
+        // Mechanical Spin Calculations
+        spinBtn.addEventListener("click", () => {
+            if (isSpinning || names.length === 0) return;
+
+            // Start Audio Context to play sounds correctly on mobile tap
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isSpinning = true;
+            spinBtn.classList.add("disabled");
+
+            const totalSegments = names.length;
+            const extraSpins = 7; // Fixed rotations speed base
+            
+            // Core Rigged Evaluator Logic
+            let targetWinningIndex;
+            if(riggedTargetIndex === "random") {
+                targetWinningIndex = Math.floor(Math.random() * totalSegments);
+            } else {
+                targetWinningIndex = parseInt(riggedTargetIndex);
+            }
+            
+            const anglePerSegment = 360 / totalSegments;
+            
+            // Mathematics to align target index directly below top pinpoint pointer (270 degrees)
+            const targetedPointerStopAngle = 270 - (targetWinningIndex * anglePerSegment) - (anglePerSegment / 2);
+            const absoluteDegreesRotation = (extraSpins * 360) + targetedPointerStopAngle;
+            
+            canvas.style.transform = `rotate(${absoluteDegreesRotation}deg)`;
+
+            // Audio ticking interval effect during active rotation
+            let currentTickCount = 0;
+            let totalTicksMax = 35; 
+            let tickTimer = setInterval(() => {
+                if(currentTickCount < totalTicksMax) {
+                    playTickSound();
+                    currentTickCount++;
+                } else {
+                    clearInterval(tickTimer);
+                }
+            }, 100);
+
+            setTimeout(() => {
+                isSpinning = false;
+                spinBtn.classList.remove("disabled");
+                
+                playWinSound();
+                winnerNameText.innerText = names[targetWinningIndex];
+                winnerPopup.classList.add("show");
+                overlay.classList.add("show");
+
+                // Seamless positioning reset block 
+                const currentRotationNormalized = absoluteDegreesRotation % 360;
+                canvas.style.transition = "none";
+                canvas.style.transform = `rotate(${currentRotationNormalized}deg)`;
+                setTimeout(() => {
+                    canvas.style.transition = "transform 5s cubic-bezier(0.25, 1, 0.2, 1)";
+                }, 45);
+
+            }, 5000); // Perfect matches transition timing
+        });
+
+        function closePopup() {
+            winnerPopup.classList.remove("show");
+            overlay.classList.remove("show");
+        }
+
+        // Initialize App View
+        renderNameList();
+    </script>
+</body>
+</html>
