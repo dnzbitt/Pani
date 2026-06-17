@@ -22,6 +22,24 @@
             color: white;
             padding: 15px;
             overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Secret Red Dot Icon (Top Right Corner) */
+        .secret-dot {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 14px;
+            height: 14px;
+            background-color: #ff3366;
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0.6;
+            z-index: 90;
+            box-shadow: 0 0 8px #ff3366;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         /* Top Banner */
@@ -40,13 +58,6 @@
             outline: none;
             color: #00ffcc;
             text-shadow: 0 0 10px rgba(0,255,204,0.2);
-        }
-
-        .instruction {
-            font-size: 0.75rem;
-            color: #b0bec5;
-            margin-top: 6px;
-            font-style: italic;
         }
 
         /* Wheel Area */
@@ -78,7 +89,6 @@
             height: 100%;
             border-radius: 50%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            /* Perfect cubic-bezier curve for authentic casino wheel slow-down */
             transition: transform 5s cubic-bezier(0.25, 1, 0.2, 1);
         }
 
@@ -142,25 +152,6 @@
             color: #e0e0e0;
         }
 
-        /* Secret Feature Trigger Areas */
-        .secret-trigger {
-            width: 35px;
-            height: 25px;
-            cursor: default;
-            background: transparent;
-        }
-
-        #riggedSelect {
-            background: rgba(0, 0, 0, 0.8);
-            color: #ff3366;
-            border: 1px solid #ff3366;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            padding: 2px;
-            display: none;
-            outline: none;
-        }
-
         .name-list {
             max-height: 130px;
             overflow-y: auto;
@@ -168,7 +159,6 @@
             padding-right: 2px;
         }
 
-        /* Custom Scrollbar */
         .name-list::-webkit-scrollbar {
             width: 4px;
         }
@@ -234,7 +224,55 @@
             font-size: 0.95rem;
         }
 
-        /* Responsive Mobile Popups */
+        /* Secret Cheat Selection Panel Style */
+        .cheat-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: #111;
+            border: 2px solid #ff3366;
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.4);
+            z-index: 105;
+            width: 85vw;
+            max-width: 300px;
+            transition: transform 0.3s ease;
+        }
+        .cheat-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .cheat-popup h3 {
+            font-size: 1rem;
+            color: #ff3366;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .cheat-options {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .cheat-btn {
+            display: block;
+            width: 100%;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-align: left;
+            transition: background 0.2s;
+        }
+        .cheat-btn:hover {
+            background: #ff3366;
+        }
+
+        /* Target Winner Popups */
         .winner-popup {
             position: fixed;
             top: 50%;
@@ -298,9 +336,10 @@
 </head>
 <body>
 
+    <div class="secret-dot" id="secretDot"></div>
+
     <div class="question-container">
         <h1 contenteditable="true" title="Click to change question">Pani Gi Bari 🚰</h1>
-        
     </div>
 
     <div class="wheel-wrapper">
@@ -312,16 +351,18 @@
     <div class="names-panel">
         <div class="panel-header">
             <h3>Doston Ke Naam:</h3>
-            <div class="secret-trigger" onclick="toggleSecretRiggedMenu()"></div>
-            <select id="riggedSelect" onchange="applyRiggedTarget()">
-                <option value="random">⭐ Pure Random</option>
-            </select>
         </div>
         <div class="name-list" id="nameList"></div>
         <div class="add-box">
             <input type="text" id="newNameInput" placeholder="Naya dost add kare...">
             <button id="addNameBtn">Add</button>
         </div>
+    </div>
+
+    <div class="cheat-popup" id="cheatPopup">
+        <h3>🤫 Next Target Lock Karein:</h3>
+        <div class="cheat-options" id="cheatOptions"></div>
+        <button class="cheat-btn" style="background:#444; text-align:center; margin-top:5px;" onclick="closeCheatPanel()">Cancel</button>
     </div>
 
     <div class="overlay" id="overlay"></div>
@@ -332,7 +373,6 @@
     </div>
 
     <script>
-        // Web Audio API Synth Effects to bypass browser download errors
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playTickSound() {
@@ -352,15 +392,14 @@
 
         function playWinSound() {
             try {
-                // Energetic double-tone finish effect
                 let osc1 = audioCtx.createOscillator();
                 let osc2 = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc1.type = 'triangle'; osc2.type = 'sawtooth';
-                osc1.frequency.setValueAtTime(392, audioCtx.currentTime); // G4
-                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.1); // C5
-                osc2.frequency.setValueAtTime(261.63, audioCtx.currentTime); // C4
-                osc2.frequency.setValueAtTime(329.63, audioCtx.currentTime + 0.1); // E4
+                osc1.frequency.setValueAtTime(392, audioCtx.currentTime); 
+                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.1); 
+                osc2.frequency.setValueAtTime(261.63, audioCtx.currentTime); 
+                osc2.frequency.setValueAtTime(329.63, audioCtx.currentTime + 0.1); 
                 gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
                 osc1.connect(gain); osc2.connect(gain);
@@ -372,8 +411,11 @@
     </script>
 
     <script>
+        // FIXED: Hamesha default char names hi load honge page khulne par
         let names = ["Vikas", "Ajay", "Dhanuj", "Jakhar"];
-        const colors = ["#ff4757", "#2ed573", "#1e90ff", "#ffa502", "#9b59b6", "#1abc9c", "#fd79a8"];
+        
+        // 8 Unique vibrant colors for 8 segments
+        const colors = ["#ff4757", "#2ed573", "#1e90ff", "#ffa502", "#9b59b6", "#1abc9c", "#fd79a8", "#eccc68"];
 
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
@@ -384,18 +426,26 @@
         const winnerPopup = document.getElementById("winnerPopup");
         const winnerNameText = document.getElementById("winnerName");
         const overlay = document.getElementById("overlay");
-        const riggedSelect = document.getElementById("riggedSelect");
+        
+        const secretDot = document.getElementById("secretDot");
+        const cheatPopup = document.getElementById("cheatPopup");
+        const cheatOptions = document.getElementById("cheatOptions");
 
         let isSpinning = false;
-        let secretClicks = 0;
-        let riggedTargetIndex = "random";
+        let pressTimer;
+        let riggedTargetIndex = "random"; 
+
+        function getWheelItems() {
+            return [...names, ...names];
+        }
 
         function drawWheel() {
-            const numSegments = names.length;
+            const wheelItems = getWheelItems();
+            const numSegments = wheelItems.length;
             const anglePerSegment = (2 * Math.PI) / numSegments;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if(numSegments === 0) {
+            if(names.length === 0) {
                 ctx.fillStyle = "white";
                 ctx.font = "18px sans-serif";
                 ctx.textAlign = "center";
@@ -403,40 +453,35 @@
                 return;
             }
 
-            names.forEach((name, i) => {
+            wheelItems.forEach((name, i) => {
                 const startAngle = i * anglePerSegment;
                 const endAngle = startAngle + anglePerSegment;
 
                 ctx.beginPath();
                 ctx.moveTo(200, 200);
                 ctx.arc(200, 200, 195, startAngle, endAngle);
+                
+                // FIXED: Har part ka unique color hoga (No repeats)
                 ctx.fillStyle = colors[i % colors.length];
                 ctx.fill();
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = "rgba(255,255,255,0.2)";
                 ctx.stroke();
 
-                // Typography Placement inside wedges
                 ctx.save();
                 ctx.translate(200, 200);
                 ctx.rotate(startAngle + anglePerSegment / 2);
                 ctx.textAlign = "right";
                 ctx.fillStyle = "white";
-                ctx.font = "bold 16px sans-serif";
-                // Shorten name if too long for layout scaling
+                ctx.font = "bold 15px sans-serif";
                 let displayName = name.length > 10 ? name.substring(0,8)+".." : name;
-                ctx.fillText(displayName, 175, 6);
+                ctx.fillText(displayName, 175, 5);
                 ctx.restore();
             });
         }
 
         function renderNameList() {
             nameListDiv.innerHTML = "";
-            
-            // Build current list options for secret rigged setup
-            let savedRiggedValue = riggedSelect.value;
-            riggedSelect.innerHTML = '<option value="random">⭐ Pure Random</option>';
-
             names.forEach((name, index) => {
                 const div = document.createElement("div");
                 div.className = "name-item";
@@ -445,29 +490,14 @@
                     <button class="remove-btn" onclick="removeName(${index})">×</button>
                 `;
                 nameListDiv.appendChild(div);
-
-                // Populate secret menu items
-                let opt = document.createElement("option");
-                opt.value = index;
-                opt.innerText = `Lock: ${name}`;
-                riggedSelect.appendChild(opt);
             });
-
-            if(savedRiggedValue !== "random" && parseInt(savedRiggedValue) < names.length) {
-                riggedSelect.value = savedRiggedValue;
-                riggedTargetIndex = savedRiggedValue;
-            } else {
-                riggedSelect.value = "random";
-                riggedTargetIndex = "random";
-            }
-
             drawWheel();
         }
 
         function updateName(inputEl) {
             const index = inputEl.getAttribute("data-index");
             names[index] = inputEl.value;
-            renderNameList();
+            drawWheel(); 
         }
 
         function removeName(index) {
@@ -488,24 +518,59 @@
              if(e.key === 'Enter') addNameBtn.click();
         });
 
-        // Invisible Master Controller Toggle
-        function toggleSecretRiggedMenu() {
-            secretClicks++;
-            if(secretClicks >= 3) { // 3 clicks reveal feature
-                riggedSelect.style.display = (riggedSelect.style.display === "block") ? "none" : "block";
-                secretClicks = 0; 
-            }
+        /* Press and Hold Engine for Red Dot (1.5 seconds) */
+        function startPress() {
+            pressTimer = setTimeout(() => {
+                openCheatPanel();
+            }, 1500); 
         }
 
-        function applyRiggedTarget() {
-            riggedTargetIndex = riggedSelect.value;
+        function cancelPress() {
+            clearTimeout(pressTimer);
         }
 
-        // Mechanical Spin Calculations
+        secretDot.addEventListener("mousedown", startPress);
+        secretDot.addEventListener("mouseup", cancelPress);
+        secretDot.addEventListener("mouseleave", cancelPress);
+
+        secretDot.addEventListener("touchstart", (e) => { e.preventDefault(); startPress(); });
+        secretDot.addEventListener("touchend", cancelPress);
+
+        function openCheatPanel() {
+            if(names.length === 0) return;
+            cheatOptions.innerHTML = "";
+            
+            let randBtn = document.createElement("button");
+            randBtn.className = "cheat-btn";
+            randBtn.innerText = "⭐ Pure Random (No Cheat)";
+            randBtn.onclick = () => { lockCheat("random"); };
+            cheatOptions.appendChild(randBtn);
+
+            names.forEach((name, index) => {
+                let btn = document.createElement("button");
+                btn.className = "cheat-btn";
+                btn.innerText = `Lock: ${name}`;
+                btn.onclick = () => { lockCheat(index); };
+                cheatOptions.appendChild(btn);
+            });
+
+            cheatPopup.classList.add("show");
+            overlay.classList.add("show");
+        }
+
+        function lockCheat(target) {
+            riggedTargetIndex = target;
+            closeCheatPanel();
+        }
+
+        function closeCheatPanel() {
+            cheatPopup.classList.remove("show");
+            overlay.classList.remove("show");
+        }
+
         spinBtn.addEventListener("click", () => {
             if (isSpinning || names.length === 0) return;
 
-            // Start Audio Context to play sounds correctly on mobile tap
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
@@ -513,47 +578,59 @@
             isSpinning = true;
             spinBtn.classList.add("disabled");
 
-            const totalSegments = names.length;
-            const extraSpins = 7; // Fixed rotations speed base
+            const wheelItems = getWheelItems();
+            const totalSegments = wheelItems.length; 
+            const extraSpins = 7; 
             
-            // Core Rigged Evaluator Logic
-            let targetWinningIndex;
+            let wheelTargetSegmentIndex;
+
             if(riggedTargetIndex === "random") {
-                targetWinningIndex = Math.floor(Math.random() * totalSegments);
+                wheelTargetSegmentIndex = Math.floor(Math.random() * totalSegments);
             } else {
-                targetWinningIndex = parseInt(riggedTargetIndex);
+                const primaryIndex = parseInt(riggedTargetIndex);
+                const secondaryIndex = primaryIndex + names.length;
+                wheelTargetSegmentIndex = Math.random() < 0.5 ? primaryIndex : secondaryIndex;
             }
             
             const anglePerSegment = 360 / totalSegments;
-            
-            // Mathematics to align target index directly below top pinpoint pointer (270 degrees)
-            const targetedPointerStopAngle = 270 - (targetWinningIndex * anglePerSegment) - (anglePerSegment / 2);
+            const targetedPointerStopAngle = 270 - (wheelTargetSegmentIndex * anglePerSegment) - (anglePerSegment / 2);
             const absoluteDegreesRotation = (extraSpins * 360) + targetedPointerStopAngle;
             
             canvas.style.transform = `rotate(${absoluteDegreesRotation}deg)`;
 
-            // Audio ticking interval effect during active rotation
-            let currentTickCount = 0;
-            let totalTicksMax = 35; 
-            let tickTimer = setInterval(() => {
-                if(currentTickCount < totalTicksMax) {
-                    playTickSound();
-                    currentTickCount++;
-                } else {
-                    clearInterval(tickTimer);
+            const duration = 5000;
+            const startTimestamp = performance.now();
+            let lastSegmentTracked = 0;
+
+            function trackTicks(now) {
+                const elapsed = now - startTimestamp;
+                if (elapsed < duration) {
+                    const t = elapsed / duration;
+                    const easeOutCubic = 1 - Math.pow(1 - t, 3); 
+                    const currentAngle = easeOutCubic * absoluteDegreesRotation;
+                    
+                    const currentSegmentPosition = Math.floor(currentAngle / anglePerSegment);
+                    if (currentSegmentPosition !== lastSegmentTracked) {
+                        playTickSound();
+                        lastSegmentTracked = currentSegmentPosition;
+                    }
+                    requestAnimationFrame(trackTicks);
                 }
-            }, 100);
+            }
+            requestAnimationFrame(trackTicks);
 
             setTimeout(() => {
                 isSpinning = false;
                 spinBtn.classList.remove("disabled");
                 
                 playWinSound();
-                winnerNameText.innerText = names[targetWinningIndex];
+                winnerNameText.innerText = wheelItems[wheelTargetSegmentIndex];
                 winnerPopup.classList.add("show");
                 overlay.classList.add("show");
 
-                // Seamless positioning reset block 
+                // One-time cheat reset back to pure random
+                riggedTargetIndex = "random";
+
                 const currentRotationNormalized = absoluteDegreesRotation % 360;
                 canvas.style.transition = "none";
                 canvas.style.transform = `rotate(${currentRotationNormalized}deg)`;
@@ -561,7 +638,7 @@
                     canvas.style.transition = "transform 5s cubic-bezier(0.25, 1, 0.2, 1)";
                 }, 45);
 
-            }, 5000); // Perfect matches transition timing
+            }, duration);
         });
 
         function closePopup() {
@@ -569,7 +646,6 @@
             overlay.classList.remove("show");
         }
 
-        // Initialize App View
         renderNameList();
     </script>
 </body>
